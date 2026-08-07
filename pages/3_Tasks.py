@@ -1,3 +1,6 @@
+import re
+from datetime import datetime
+
 import requests
 import streamlit as st
 
@@ -16,6 +19,19 @@ rep = st.selectbox("Rep", REPS, format_func=lambda r: r.capitalize())
 # script with the "Load" button back to False -- so holding the list in a
 # local would empty it the moment you completed or drafted anything.
 state_key = f"tasks_{rep}"
+
+
+def format_due(deadline: str | None) -> str:
+    """Attio returns deadlines as ISO strings with nanosecond precision
+    ("2026-07-09T08:00:00.000000000Z"), which is unreadable in a list.
+    fromisoformat can't parse 9-digit fractional seconds, so trim to micro."""
+    if not deadline:
+        return "no due date"
+    try:
+        cleaned = re.sub(r"\.(\d{6})\d*", r".\1", deadline.replace("Z", "+00:00"))
+        return datetime.fromisoformat(cleaned).strftime("%a %d %b %Y")
+    except ValueError:
+        return deadline
 
 
 def load_tasks():
@@ -49,7 +65,12 @@ for t in tasks or []:
         col1, col2 = st.columns([3, 1])
         with col1:
             st.markdown(f"**{t['content']}**")
-            st.caption(f"Due {t.get('deadline_at') or '—'} · {t.get('company_name') or ''}")
+            # Only cadence tasks carry a company; don't leave a dangling
+            # separator on the hand-written ones.
+            bits = [f"Due {format_due(t.get('deadline_at'))}"]
+            if t.get("company_name"):
+                bits.append(t["company_name"])
+            st.caption(" · ".join(bits))
         with col2:
             if st.button("Mark complete", key=f"complete_{task_id}"):
                 try:
