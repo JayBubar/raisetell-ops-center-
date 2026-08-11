@@ -24,6 +24,8 @@ st.markdown(
     - **Triggers** — one-click runs for scripts that currently require you at a keyboard
     - **Status** — health of the webhook receivers, Smartlead, Allo tag registry
     - **Tasks** — Attio task list/complete view (build phase 2)
+    - **Tracker** — campaign engagement history; structure only until
+      `contact_activity_log` has rows in it
 
     This app does not run scripts itself — it calls routes on the
     `attio-automation-hub` FastAPI service (same Railway project), which owns

@@ -128,6 +128,94 @@ with st.container(border=True):
 
 st.divider()
 
+# ---------------------------------------------------------------------------
+# Automation flags -- pause/resume without a redeploy
+# ---------------------------------------------------------------------------
+with st.container(border=True):
+    st.subheader("Automation flags")
+    st.caption(
+        "Read and written through the hub's `/config/flags`, which stores them "
+        "in MotherDuck. `outreach_rotation.py` reads the flag once at the start "
+        "of each run, so a change here takes effect on the next scheduled run — "
+        "no code edit, no redeploy."
+    )
+
+    def apply_flag(key: str):
+        """Runs on toggle. On failure the switch is snapped back, so the UI
+        never shows a state the scheduled job won't actually obey."""
+        desired = st.session_state[f"flag_{key}"]
+        try:
+            r = requests.patch(
+                f"{HUB_BASE_URL}/config/flags/{key}",
+                headers=HUB_HEADERS,
+                params={"value": str(desired).lower(), "updated_by": "ops-center"},
+                timeout=30,
+            )
+            r.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            st.session_state[f"flag_{key}"] = not desired
+            st.session_state[f"flag_err_{key}"] = str(e)
+        else:
+            st.session_state.pop(f"flag_err_{key}", None)
+
+    flags, flags_err = hub_get("/config/flags")
+
+    if flags_err:
+        st.error(f"Could not read flags from the hub: {flags_err}")
+    elif not flags:
+        st.info("The hub reports no toggleable flags.")
+    else:
+        if st.button("Refresh from hub", key="flags_refresh"):
+            # Widget state wins over the fetched value once a toggle exists, so
+            # a flag changed elsewhere (or straight in MotherDuck) would keep
+            # rendering stale here until these keys are dropped.
+            for f in flags:
+                st.session_state.pop(f"flag_{f['key']}", None)
+            st.rerun()
+
+        for f in flags:
+            key = f["key"]
+            skey = f"flag_{key}"
+            if skey not in st.session_state:
+                st.session_state[skey] = bool(f["value"])
+
+            st.toggle(f["label"], key=skey, on_change=apply_flag, args=(key,))
+            st.caption(f["description"])
+
+            if st.session_state.get(f"flag_err_{key}"):
+                st.error(
+                    "Toggle not saved — the hub rejected the write, so the "
+                    f"scheduled job still uses the old value. {st.session_state[f'flag_err_{key}']}"
+                )
+
+            # `source` is the honest part: "default" is also what a MotherDuck
+            # outage looks like, so don't render it as a stored value.
+            source = f.get("source")
+            if source == "motherduck":
+                who = f.get("updated_by") or "unknown"
+                when = (f.get("updated_at") or "")[:19].replace("T", " ")
+                st.caption(f"Stored in MotherDuck · set by {who}" + (f" · {when} UTC" if when else ""))
+            elif source == "env":
+                st.caption(
+                    "Value is coming from the Railway env var, not the toggle — "
+                    "flipping this writes a MotherDuck row that overrides it."
+                )
+            else:
+                st.caption(
+                    "No stored value and no env var — this is the built-in "
+                    "default. A MotherDuck outage looks identical, so treat it "
+                    "as 'unconfirmed' rather than 'set'."
+                )
+
+            if key == "ac_paused" and st.session_state[skey] is False:
+                st.warning(
+                    "AC rotation is live: the next run will push new contacts "
+                    "into ActiveCampaign and evict stale ones. Current standing "
+                    "decision is to leave this paused."
+                )
+
+st.divider()
+
 with st.expander("Why isn't Snitcher discovery a button here?"):
     st.write(
         "It runs as a Cowork/Dispatch scheduled task, not a script in the "

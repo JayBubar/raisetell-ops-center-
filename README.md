@@ -12,6 +12,7 @@ pages/
   1_Triggers.py           # buttons -> POST hub routes
   2_Status.py             # health checks, read-only
   3_Tasks.py              # Attio task runner + Outlook drafts
+  4_Tracker.py            # campaign engagement history (placeholder, see below)
 hub_additions/            # pointers only -- the live code is in the hub repo
 requirements.txt
 railway.json
@@ -31,6 +32,13 @@ railway.json
 ## What's live
 
 - **Trigger:** uncontacted outreach batch per rep, with a dry-run option
+- **Automation flags:** pause/resume the AC rotation from the Triggers page.
+  Writes through the hub's `/config/flags` into MotherDuck, which
+  `outreach_rotation.py` reads at the start of each run — so resuming is a
+  toggle, not an edit and a redeploy. A rejected write snaps the switch back
+  rather than showing a state the scheduled job won't obey, and a flag with
+  no stored value is labelled unconfirmed (a MotherDuck outage looks
+  identical to "never set")
 - **Status:** hub health, AC↔Attio bridge health, Smartlead rotation
   summary, Snitcher Review queue depth, Allo tag registry, Outlook
   connection state per rep
@@ -38,6 +46,20 @@ railway.json
   task, or push the draft into the rep's own Outlook Drafts folder
 - **Flagged, not actioned:** `allo_calls` crash, Cal.com reconciliation
   (placeholder button, disabled until that script exists)
+
+## Tracker — structure only, on purpose
+
+`4_Tracker.py` has the campaign selector, summary tiles, and the shape of
+the eventual detail view, but reads nothing. Its data source
+(`hubspot_email_archive.main.contact_activity_log`) exists and is empty; the
+hub's `/webhooks/ac-form-fill` route fills it once the five AC automations
+have their Webhook blocks pointed at it.
+
+Wiring the tiles needs a read route on the hub — there isn't one yet, and
+deliberately so: it's worth seeing the real row shape before designing a
+query around it. Social Media and Conference follow-ups stay empty until
+those sources exist. They land in the same table under a different `source`,
+so nothing here gets redesigned when they do.
 
 ## Deliberately out of scope
 
@@ -83,6 +105,8 @@ Streamlit start command.
 
 ## Next build passes
 
+- Tracker: hub read route over `contact_activity_log`, then wire the tiles
+  and add the contact-list/timeline detail view
 - Write Task Runner subject/body edits back to `outreach_email_drafts`
 - Click-tracking redirect route + dashboard tile, once that service exists
 - Allo tag registry inline edit (currently read-only)
