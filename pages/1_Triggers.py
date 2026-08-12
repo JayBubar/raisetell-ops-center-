@@ -229,12 +229,11 @@ with st.container(border=True):
                     "as 'unconfirmed' rather than 'set'."
                 )
 
-            if key == "ac_paused" and st.session_state[skey] is False:
-                st.warning(
-                    "AC rotation is live: the next run will push new contacts "
-                    "into ActiveCampaign and evict stale ones. Current standing "
-                    "decision is to leave this paused."
-                )
+            # The warning text comes from the hub's flag metadata rather than
+            # a `key == "ac_paused"` branch here, so adding a flag on the hub
+            # doesn't silently ship an unwarned toggle in this page.
+            if st.session_state[skey] is False and f.get("live_warning"):
+                st.warning(f["live_warning"])
 
 st.divider()
 
