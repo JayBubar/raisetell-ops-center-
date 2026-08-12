@@ -28,8 +28,30 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.metric("Hub status", "Up" if check(f"{HUB_BASE_URL}/health") else "Down")
 with col2:
-    bridge_up = check("https://peaceful-generosity-production-312b.up.railway.app/health")
-    st.metric("AC ↔ Attio bridge", "Up" if bridge_up else "Down")
+    # Was a hardcoded probe of peaceful-generosity-production-312b, a host that
+    # 404s and that the bridge never ran on -- so this tile read "Down" no
+    # matter what the bridge was doing. The bridge is a route inside the hub;
+    # the honest headline is when it last actually received an event, since a
+    # mounted route with a mis-wired AC automation looks healthy from outside.
+    bridge, bridge_err = hub_get("/status/ac-bridge")
+    if bridge_err:
+        st.metric("AC bridge · last event", "—", help=bridge_err)
+    elif not bridge.get("route_registered"):
+        st.metric("AC bridge · last event", "Not mounted",
+                  help=f"POST {bridge.get('webhook_path')} is not registered on the hub")
+    else:
+        ev = bridge.get("events") or {}
+        if not ev.get("available"):
+            st.metric("AC bridge · last event", "Unknown",
+                      help=f"Receiver is mounted; webhook log unreadable: {ev.get('reason', '')}")
+        elif ev.get("last_event_at"):
+            st.metric("AC bridge · last event", ev["last_event_at"][:10],
+                      help=f"{ev.get('events_7d', 0)} events in the last 7 days. "
+                           "Receiver is mounted.")
+        else:
+            st.metric("AC bridge · last event", "None yet",
+                      help="Receiver is mounted but has logged no events. "
+                           "Quiet is normal if no tags changed.")
 with col3:
     snitcher, err = hub_get("/status/snitcher-review")
     st.metric("Snitcher review", snitcher["status_new"] if snitcher else "—",

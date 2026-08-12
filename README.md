@@ -39,9 +39,15 @@ railway.json
   rather than showing a state the scheduled job won't obey, and a flag with
   no stored value is labelled unconfirmed (a MotherDuck outage looks
   identical to "never set")
-- **Status:** hub health, AC↔Attio bridge health, Smartlead rotation
+- **Status:** hub health, AC↔Attio bridge, Smartlead rotation
   summary, Snitcher Review queue depth, Allo tag registry, Outlook
-  connection state per rep
+  connection state per rep.
+  The bridge panel reads the hub's `/status/ac-bridge` rather than pinging a
+  second host — the bridge is a route *inside* attio-automation-hub, and the
+  old tile probed `peaceful-generosity-…`, a URL it never ran on, so it showed
+  Down permanently while working. It now reports whether the receiver is
+  mounted and when it last actually received an event, kept separate on
+  purpose: quiet is not broken, and an unreadable log is not "no traffic"
 - **Tasks:** open Attio tasks with their AI-drafted email inline; complete a
   task, or push the draft into the rep's own Outlook Drafts folder
 - **Flagged, not actioned:** `allo_calls` crash, Cal.com reconciliation
