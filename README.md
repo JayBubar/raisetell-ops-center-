@@ -50,6 +50,15 @@ railway.json
   purpose: quiet is not broken, and an unreadable log is not "no traffic"
 - **Tasks:** open Attio tasks with their AI-drafted email inline; complete a
   task, or push the draft into the rep's own Outlook Drafts folder
+- **Campaigns:** pick a campaign, get its target list, funnel (targeted →
+  attended → meeting scheduled → follow-up breakdown), cross-channel activity
+  feed, and Won value vs. Budget.
+  All of it comes from the hub's `/campaigns` routes rather than being
+  assembled here — this service has no `MOTHERDUCK_TOKEN`, and resolving list
+  membership once server-side means the funnel, the feed, and the deal roll-up
+  all describe the same set of people instead of catching the list mid-edit.
+  The deal-value basis is selectable because the plain *Deal value* field is
+  empty workspace-wide; ARR + Implementation is the default
 - **Flagged, not actioned:** `allo_calls` crash, Cal.com reconciliation
   (placeholder button, disabled until that script exists)
 

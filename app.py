@@ -26,6 +26,8 @@ st.markdown(
     - **Tasks** — Attio task list/complete view (build phase 2)
     - **Tracker** — campaign engagement history; structure only until
       `contact_activity_log` has rows in it
+    - **Campaigns** — per-campaign funnel, activity, and Won value vs. Budget,
+      resolved through the campaign's Target List Slug
 
     This app does not run scripts itself — it calls routes on the
     `attio-automation-hub` FastAPI service (same Railway project), which owns
