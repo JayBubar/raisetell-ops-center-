@@ -221,5 +221,34 @@ if st.button("Load tag registry"):
     except requests.exceptions.RequestException as e:
         st.error(f"Could not reach hub: {e}")
 
-st.caption("`allo_calls` service crash is still open — flagging here until fixed:")
-st.warning("allo_calls (Railway) — deferred crash, not yet resolved")
+# Was a hardcoded "deferred crash, not yet resolved". Probed 2026-08-13: /health
+# 200, GET on the webhook path 405 (mounted), unsigned POST 401 — the service is
+# up. The real fault was in the receiver's logic, not its process: it gated on a
+# topic Allo never sends. Same lesson as the bridge tile above, so this is a
+# live check rather than another sentence that can quietly go out of date.
+st.subheader("Allo Call Receiver")
+st.write(
+    "`allo_calls` (separate Railway project `allo-tag-webhook`). Deployed from "
+    "local files via `railway up`, not from a repo."
+)
+if st.button("Check Allo receiver"):
+    allo_base = "https://allocalls-production.up.railway.app"
+    try:
+        health_ok = requests.get(f"{allo_base}/health", timeout=10).status_code == 200
+        # 405 on GET means the POST route is mounted; 404 would mean it is not.
+        mounted = requests.get(
+            f"{allo_base}/webhooks/allo/tag-added", timeout=10
+        ).status_code == 405
+    except requests.exceptions.RequestException as e:
+        st.error(f"Could not reach the Allo receiver: {e}")
+    else:
+        a1, a2 = st.columns(2)
+        a1.metric("Service", "🟢 Up" if health_ok else "🔴 Down")
+        a2.metric("Receiver mounted", "🟢 Yes" if mounted else "🔴 No")
+        st.caption(
+            "Whether it *does* anything is a separate question — check "
+            "`allo_webhook_events_log` in MotherDuck. Allo's live tags "
+            "(`Follow-up later`, `wrong_contact`) don't match any `tag_name` in "
+            "`allo_tag_registry`, so calls log as `skipped_unknown_tag` until "
+            "that vocabulary is reconciled."
+        )
