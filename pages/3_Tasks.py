@@ -160,8 +160,18 @@ with left:
         phone = ctx.get("phone")
         if phone:
             st.markdown(f"### 📞 [{phone}](tel:{phone.replace(' ', '')})")
+        elif not ctx.get("available"):
+            # Distinct from "the record has no phone". Collapsing the two sent
+            # someone to check a record that did have a number on it.
+            st.warning(
+                "No linked person record on this task, so no number could be "
+                "looked up. Link the task to the contact in Attio."
+            )
         else:
-            st.warning("No phone number on this record.")
+            st.warning(
+                f"No phone number on {ctx.get('person_name') or 'this record'} "
+                "(checked Cell Phone and Phone numbers)."
+            )
 
         opts, opt_err = hub("GET", "/call-outcomes",
                             params={"prospect_path": ctx.get("prospect_path") or ""},
