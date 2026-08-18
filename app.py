@@ -23,7 +23,8 @@ st.markdown(
 
     - **Triggers** — one-click runs for scripts that currently require you at a keyboard
     - **Status** — health of the webhook receivers, Smartlead, Allo tag registry
-    - **Tasks** — Attio task list/complete view (build phase 2)
+    - **Tasks** — queue mode: one task per screen with its context already
+      loaded, type-specific actions, auto-advance on complete
     - **Tracker** — campaign engagement history; structure only until
       `contact_activity_log` has rows in it
     - **Campaigns** — per-campaign funnel, activity, and Won value vs. Budget,
