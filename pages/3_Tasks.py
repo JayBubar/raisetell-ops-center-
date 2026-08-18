@@ -40,7 +40,7 @@ QMETA = "queue_meta" # filter/rep the queue was built with
 def hub(method, route, **kw):
     try:
         r = requests.request(method, f"{HUB_BASE_URL}{route}",
-                             headers=HUB_HEADERS, timeout=kw.pop("timeout", 120), **kw)
+                             headers=HUB_HEADERS, timeout=kw.pop("timeout", 180), **kw)
         r.raise_for_status()
         return (r.json() if r.content else {}), None
     except requests.exceptions.RequestException as e:
@@ -101,7 +101,9 @@ if Q not in st.session_state:
             st.session_state[Q] = data["tasks"]
             st.session_state[QI] = 0
             st.session_state[QMETA] = {"rep": rep, "due": due, "type": ttype,
-                                       "total_open": data["total_open"]}
+                                       "total_open": data["total_open"],
+                                       "matched": data.get("matched"),
+                                       "truncated": data.get("truncated")}
             st.rerun()
     st.stop()
 
@@ -126,8 +128,11 @@ ctx = task.get("context") or {}
 head_l, head_r = st.columns([3, 1])
 with head_l:
     st.markdown(f"### Task {idx + 1} of {len(queue)}")
-    st.caption(f"{meta['rep'].capitalize()} · {DUE_FILTERS[meta['due']]} · "
-               f"{TYPE_FILTERS[meta['type']]}")
+    line = f"{meta['rep'].capitalize()} · {DUE_FILTERS[meta['due']]} · {TYPE_FILTERS[meta['type']]}"
+    if meta.get("truncated"):
+        # Say so rather than let a capped queue read as "that is all of them".
+        line += f" · showing {len(queue)} of {meta['matched']} matching"
+    st.caption(line)
 with head_r:
     if st.button("Exit queue"):
         reset_queue()
